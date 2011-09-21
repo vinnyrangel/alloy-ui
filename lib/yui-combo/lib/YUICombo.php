@@ -1,6 +1,6 @@
 <?php
-define(DOT, ".");
-define(EMPTY_STRING, "");
+define('DOT', ".");
+define('EMPTY_STRING', "");
 
 class YUICombo {
 	function __construct($modules, $config) {
@@ -19,8 +19,8 @@ class YUICombo {
 			"css" => "text/css"
 		);
 
-		$this->setModules($modules);
 		$this->setConfig($config);
+		$this->setModules($modules);
 	}
 
 	function fixPath($path) {
@@ -30,7 +30,7 @@ class YUICombo {
 
 	function getBasePath() {
 		$config = $this->getConfig();
-		$basePath = $config[basePath];
+		$basePath = array_key_exists('basePath', $config) ? $config['basePath'] : false;
 
 		return $basePath ? $basePath : COMBO_FILE_PATH;
 	}
@@ -42,7 +42,7 @@ class YUICombo {
 	function getModule($index) {
 		$modules = $this->getModules();
 
-		return $modules[$index];
+		return array_key_exists($index, $modules) ? $modules[$index] : null;
 	}
 
 	function getRequestId() {
@@ -172,8 +172,7 @@ class YUICombo {
 	}
 
 	function path($path) {
-		$path = $this->getBasePath() . DS . $path;
-		$path = $this->fixPath($path);
+		$path = $this->getBasePath() . DS . $this->fixPath($path);
 		$realpath = realpath($path);
 
 		return (file_exists($realpath) && is_readable($realpath)) ? $realpath : false;
