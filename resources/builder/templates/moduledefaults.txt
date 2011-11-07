@@ -6,11 +6,13 @@
 			method: 'GET'
 		},
 
-        combine: false,
+        combine: true,
+		root: './../../build/',
+		comboBase: YUI.config.base + '../lib/yui-combo/combo.php?',
 
 		groups: {
             alloy: {
-				combine: false,
+				combine: true,
                 modules: {
 @MODULES@
 				}
