@@ -10,6 +10,7 @@
 		body {
 			font-size: 16px;
 		}
+
 		#wrapper {
 			padding: 10px;
 		}
@@ -68,7 +69,6 @@
 			font-size: 12px;
 			color: #A7A7A7;
 		}
-
 	</style>
 </head>
 
@@ -80,14 +80,14 @@
 		$demos = 'demos';
 		define('DEMOS_PATH', dirname(__FILE__) . '/' . $demos);
 
-		$files = getFiles(DEMOS_PATH);
+		$files = getFiles(DEMOS_PATH, 'dirs');
 
 		?>
 			<h1>AlloyUI</h1>
 			<h2>Demos <span>(<?php echo count($files['dirs']) ?> modules)</span></h2>
 		<?php
 
-		showFiles($files['dirs'], false);
+		showFiles($files, false);
 
 		function showFiles($files, $sub=false, $dir = '') {
 			$demos = $GLOBALS['demos'];
@@ -156,22 +156,27 @@
 					'files' => array()
 				);
 
-				while (($file = readdir($dh)) !== false) {
-					if (!is_dir($dir . "/" . $file) && $file != '.' && $file != '..' && ($regex_filter != '' && preg_match($regex_filter, $file))) {
+				$dirs = scandir($dir);
+
+				foreach ($dirs as $index => $file) {
+					$dir_path = "$dir/$file";
+					$is_dir = is_dir($dir_path);
+
+					$not_relative_parent = ($file != '.' && $file != '..');
+
+					if (!$is_dir && $not_relative_parent && ($regex_filter != '' && preg_match($regex_filter, $file))) {
 						$filearr['files'][] = $file;
 					}
-					elseif (is_dir($dir . "/" . $file) && $file != '.' && $file != '..' && !$recursive) {
+					elseif ($is_dir && $not_relative_parent && !$recursive) {
 						$filearr['dirs'][] = $file;
 					}
 
 					if ($recursive) {
-						if (is_dir($dir . "/" . $file) && $file != '.' && $file != '..') {
-							$filearr['dirs'][$file] = getFiles($dir . "/" . $file, 'all', 1);
+						if ($is_dir && $not_relative_parent) {
+							$filearr['dirs'][$file] = getFiles($dir_path, 'all', 1);
 						}
 					}
 				}
-
-				closedir($dh);
 			}
 
 			if ($type == 'files') {
