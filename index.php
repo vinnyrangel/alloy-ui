@@ -11,8 +11,17 @@
 			font-size: 16px;
 		}
 
+		h1 {
+			margin: 1em 0 0 20px;
+		}
+
+		h2, h3 {
+			margin: 10px;
+		}
+
 		#wrapper {
 			padding: 10px;
+			padding-left: 20px;
 		}
 
 		#wrapper h2 span {
@@ -30,19 +39,19 @@
 			padding-left: 0.5em;
 		}
 
-		#wrapper li {
+		.modules li {
 			position: relative;
 		}
 
-		#wrapper li.directory {
+		.modules li.directory {
 			padding-left: 2em;
 		}
 
-		#wrapper li.directory-start {
+		.modules li.directory-start {
 			margin: 1em 0 0;
 		}
 
-		#wrapper li h3 {
+		.modules li h3 {
 			position: absolute;
 			top: 0;
 			left: 0;
@@ -50,7 +59,7 @@
 			text-transform: uppercase;
 		}
 
-		#wrapper li a {
+		.modules li a {
 			text-transform: capitalize;
 		}
 
@@ -59,12 +68,23 @@
 			color: #777;
 		}
 
-		#wrapper li li a {
+		.modules li li a, .modules li .docs-link {
 			text-transform: lowercase;
 			color: #959DAB;
 		}
 
-		#wrapper li li.other-files-header {
+		.modules li .docs-link {
+			font-size: 12px;
+			margin-left: 5px;
+			color: #fff;
+			background: #0E5894;
+			border-radius: 5px;
+			padding: 1px 5px;
+			text-decoration: none;
+			text-shadow: 1px 1px #00335D;
+		}
+
+		.modules li li.other-files-header {
 			font-weight: bold;
 			font-size: 12px;
 			color: #A7A7A7;
@@ -74,17 +94,28 @@
 
 <body>
 
+<h1>AlloyUI</h1>
+
 <div id="wrapper">
-	<ul>
-		<?php
-		$demos = 'demos';
-		define('DEMOS_PATH', dirname(__FILE__) . '/' . $demos);
+	<?php
+	$demos = 'demos';
+	define('DEMOS_PATH', slashify(dirname(__FILE__) . '/' . $demos));
+	define('API_PATH', slashify(dirname(__FILE__) . '/api'));
 
-		$files = getFiles(DEMOS_PATH, 'dirs');
+	$files = getFiles(DEMOS_PATH, 'dirs');
 
-		?>
-			<h1>AlloyUI</h1>
-			<h2>Demos <span>(<?php echo count($files['dirs']) ?> modules)</span></h2>
+	?>
+
+	<h2>Documentation</h2>
+	<ul class="docs">
+		<li><a href="./api/">API Documentation</a></li>
+		<li><a href="./docs/">Convert/Compare jQuery, YUI, and AlloyUI</a></li>
+	</ul>
+
+	<h2>Demos <span>(<?php echo count($files) ?> modules)</span></h2>
+
+	<ul class="modules">
+			
 		<?php
 
 		showFiles($files, false);
@@ -132,6 +163,15 @@
 
 					<?php
 						if (!$sub) {
+							$api_module_path = "module_aui-$value.html";
+
+							if (file_exists(API_PATH . $api_module_path)) {
+							?>
+								<a class="docs-link" href="./api/<?php echo $api_module_path; ?>">docs</a>
+							<?php
+								
+							}
+
 							$subfiles = getFiles(DEMOS_PATH."/$value", 'files', 0, '/^(?:(?!index).*)\.html$/i');
 
 							showFiles($subfiles, true, $value);
