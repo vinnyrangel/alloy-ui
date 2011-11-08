@@ -9,6 +9,11 @@
 	<style type="text/css" media="screen">
 		body {
 			font-size: 16px;
+			background-color: #EEE;
+		}
+
+		h1, h2, h3, h4, h5, h6 {
+			text-shadow: 1px 1px #fff;
 		}
 
 		h1 {
@@ -103,7 +108,7 @@
 
 <body>
 
-<h1><span class="title">AlloyUI</span> <span class="rev-info">Latest commit: <?php system('git log --pretty="%h" master -1') ?></span></h1>
+<h1><span class="title">AlloyUI</span> <a href="http://github.com/liferay/alloy-ui" class="rev-info">Latest commit: <?php system('git log --pretty="%h" master -1') ?></a></h1>
 
 <div id="wrapper">
 	<?php
