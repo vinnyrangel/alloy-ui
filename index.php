@@ -19,14 +19,14 @@
 			margin: 10px;
 		}
 
+		span.module-count {
+			font-size: 16px;
+			color: #777;
+		}
+
 		#wrapper {
 			padding: 10px;
 			padding-left: 20px;
-		}
-
-		#wrapper h2 span {
-			font-size: 16px;
-			color: #777;
 		}
 
 		#wrapper ul {
@@ -73,15 +73,24 @@
 			color: #959DAB;
 		}
 
-		.modules li .docs-link {
+		.modules li .docs-link, .rev-info {
 			font-size: 12px;
 			margin-left: 5px;
 			color: #fff;
-			background: #0E5894;
+			background-color: #0E5894;
 			border-radius: 5px;
 			padding: 1px 5px;
 			text-decoration: none;
 			text-shadow: 1px 1px #00335D;
+		}
+
+		h1 span.title, .rev-info {
+			vertical-align: middle;
+		}
+
+		.rev-info {
+			background-color: #555;
+			padding: 2px 10px;
 		}
 
 		.modules li li.other-files-header {
@@ -94,7 +103,7 @@
 
 <body>
 
-<h1>AlloyUI</h1>
+<h1><span class="title">AlloyUI</span> <span class="rev-info">Latest commit: <?php system('git log --pretty="%h" master -1') ?></span></h1>
 
 <div id="wrapper">
 	<?php
@@ -103,16 +112,15 @@
 	define('API_PATH', slashify(dirname(__FILE__) . '/api'));
 
 	$files = getFiles(DEMOS_PATH, 'dirs');
-
 	?>
 
-	<h2>Documentation</h2>
+	<h2><span class="title">Documentation</span></h2>
 	<ul class="docs">
 		<li><a href="./api/">API Documentation</a></li>
 		<li><a href="./docs/">Convert/Compare jQuery, YUI, and AlloyUI</a></li>
 	</ul>
 
-	<h2>Demos <span>(<?php echo count($files) ?> modules)</span></h2>
+	<h2><span class="title">Demos</span> <span class="module-count">(<?php echo count($files) ?> modules)</span></h2>
 
 	<ul class="modules">
 			
