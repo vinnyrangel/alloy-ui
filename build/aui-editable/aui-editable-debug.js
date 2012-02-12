@@ -11,6 +11,8 @@ var Lang = A.Lang,
 
 	getClassName = A.getClassName,
 
+	DOC = A.config.doc,
+
 	HOVER = 'hover',
 	NAME = 'editable',
 
@@ -167,7 +169,7 @@ var Editable = A.Component.create(
 			 * @type String | Node
 			 */
 			renderTo: {
-				value: document.body,
+				value: DOC.body,
 				setter: function(value) {
 					var instance = this;
 

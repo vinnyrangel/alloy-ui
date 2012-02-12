@@ -237,11 +237,11 @@
 			</delete>
 
 			<concat destfile="${aui.combined.file}" fixlastline="yes" eol="${buildfiles.eol}">
-				<header file="${global.build.base}/yui-base/yui-base.js"/>
+				<header file="${global.build.base}/yui/yui.js"/>
 				<fileset dir="${global.build.base}/${build.aui.prefix}aui-base" includes="${build.aui.prefix}aui-base.js"/>
 			</concat>
 			<concat destfile="${aui.combined.min.file}" fixlastline="yes" eol="${buildfiles.eol}">
-				<header file="${global.build.base}/yui-base/yui-base-min.js"/>
+				<header file="${global.build.base}/yui/yui-min.js"/>
 				<fileset dir="${global.build.base}/${build.aui.prefix}aui-base" includes="${build.aui.prefix}aui-base-min.js"/>
 			</concat>
 
@@ -303,6 +303,18 @@
 				args="${yuicompressor.js.args.internal}"
 				dest="${project.dir}/build/${build.aui.prefix}aui-base/${build.aui.prefix}aui-base-min.js"
 				src="${aui.base.component.dir}/${build.aui.prefix}aui-base.js"
+			/>
+
+			<copy
+				file="@{defaultsfile}"
+				tofile="${aui.base.component.dir}/${build.aui.prefix}${build.aui.prefix}aui-base-meta.js"
+				overwrite="true"
+			/>
+
+			<yuicompress
+				args="${yuicompressor.js.args.internal}"
+				dest="${project.dir}/build/${build.aui.prefix}aui-base/${build.aui.prefix}aui-base-meta-min.js"
+				src="${aui.base.component.dir}/${build.aui.prefix}aui-base-meta.js"
 			/>
 		</sequential>
 	</macrodef>

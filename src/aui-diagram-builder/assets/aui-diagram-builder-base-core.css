@@ -25,8 +25,14 @@
 }
 
 .aui-diagram-builder-field-icon {
-	display: inline-block;
-	margin: 3px;
+	display: block;
+	margin: 3px auto;
+}
+
+.aui-diagram-builder-field-label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;	
 }
 
 .aui-diagram-builder .aui-diagram-builder-field-icon-text {

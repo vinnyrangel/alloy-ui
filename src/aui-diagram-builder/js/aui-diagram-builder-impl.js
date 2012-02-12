@@ -69,6 +69,7 @@ var Lang = A.Lang,
 	RADIUS = 'radius',
 	RECORDS = 'records',
 	RECORDSET = 'recordset',
+	REGION = 'region',
 	RENDERED = 'rendered',
 	REQUIRED = 'required',
 	SELECTED = 'selected',
@@ -502,7 +503,12 @@ var DiagramBuilder = A.Component.create({
 
 			instance.connector.hide();
 			instance.get(SUGGEST_CONNECTOR_OVERLAY).hide();
-			instance.fieldsDrag.dd.set(LOCK, false);
+
+			try {
+				instance.fieldsDrag.dd.set(LOCK, false);
+			}
+			catch(e) {
+			}
 		},
 
 		isAbleToConnect: function() {
@@ -539,7 +545,11 @@ var DiagramBuilder = A.Component.create({
 			instance.get(SUGGEST_CONNECTOR_OVERLAY).set(XY, xy || instance.connector.get(P2))
 				.show().get(BOUNDING_BOX).addClass(CSS_DIAGRAM_SUGGEST_CONNECTOR);
 
-			instance.fieldsDrag.dd.set(LOCK, true);
+			try {
+				instance.fieldsDrag.dd.set(LOCK, true);
+			}
+			catch(e) {
+			}
 		},
 
 		stopEditing: function() {
@@ -691,6 +701,8 @@ var DiagramBuilder = A.Component.create({
 			instance.select(diagramNode);
 
 			instance._onNodeEdit(event);
+
+			event.stopPropagation();
 		},
 
 		_onNodeEdit: function(event) {
@@ -764,9 +776,10 @@ var DiagramBuilder = A.Component.create({
 		_renderGraphic: function() {
 			var instance = this;
 			var graphic = instance.get(GRAPHIC);
+			var canvas = instance.get(CANVAS);
 
-			graphic.render(instance.get(CANVAS));
-			A.one(graphic.get(NODE)).on(CLICK, A.bind(instance._onCanvasClick, instance));
+			graphic.render(canvas);
+			A.one(canvas).on(CLICK, A.bind(instance._onCanvasClick, instance));
 		},
 
 		_setConnector: function(val) {
@@ -1219,6 +1232,7 @@ var DiagramNode = A.Component.create({
 		connectStart: function(event) {
 			var instance = this;
 			var builder = instance.get(BUILDER);
+			var canvas = builder.get(CANVAS);
 
 			builder.connector.show().set(P1, event.startXY);
 
@@ -1501,8 +1515,9 @@ var DiagramNode = A.Component.create({
 
 		_onBoundaryDrag: function(event) {
 			var instance = this;
+			var dd = instance.boundaryDragDelegate.dd;
 
-			instance._handleConnectMove(instance.boundaryDragDelegate.dd.mouseXY);
+			instance._handleConnectMove(dd.con._checkRegion(dd.mouseXY));
 		},
 
 		_onBoundaryDragEnd: function(event) {

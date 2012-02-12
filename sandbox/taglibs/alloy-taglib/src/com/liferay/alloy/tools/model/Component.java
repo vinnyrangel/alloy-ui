@@ -11,21 +11,6 @@ import java.util.List;
 
 public class Component extends BaseModel {
 
-	public Component(
-		String componentPackage, String name, boolean alloyComponent,
-		String module, boolean bodyContent, List<Attribute> attributes,
-		List<Attribute> events, String[] authors) {
-
-		setAlloyComponent(alloyComponent);
-		setEvents(events);
-		setAttributes(attributes);
-		setBodyContent(bodyContent);
-		setModule(module);
-		setPackage(componentPackage);
-		setName(name);
-		setAuthors(authors);
-	}
-
 	public String getAttributeNamespace() {
 		StringBuilder sb = new StringBuilder();
 
@@ -84,10 +69,6 @@ public class Component extends BaseModel {
 		return _parentClass;
 	}
 
-	public boolean getWriteJSP() {
-		return _writeJSP;
-	}
-
 	public String getSafeName() {
 		return StringUtil.replace(
 			getName(), StringPool.PERIOD, StringPool.BLANK);
@@ -101,6 +82,10 @@ public class Component extends BaseModel {
 
 	public String getUncamelizedName(String delimiter) {
 		return getUncamelizedName().replaceAll("\\-", delimiter);
+	}
+
+	public boolean getWriteJSP() {
+		return _writeJSP;
 	}
 
 	public boolean isAlloyComponent() {
@@ -124,7 +109,7 @@ public class Component extends BaseModel {
 				PortalClassLoaderUtil.setClassLoader(contextClassLoader);
 
 				Class<?> parentClass = Class.forName(parentClassName);
-				
+
 				Class<?> clazz = Class.forName(className);
 
 				return clazz.isAssignableFrom(parentClass);
@@ -133,6 +118,10 @@ public class Component extends BaseModel {
 		}
 
 		return false;
+	}
+
+	public boolean isDynamicAttributes() {
+		return _dynamicAttributes;
 	}
 
 	public void setAlloyComponent(boolean alloyComponent) {
@@ -157,6 +146,10 @@ public class Component extends BaseModel {
 
 	public void setClassName(String className) {
 		_className = className;
+	}
+
+	public void setDynamicAttributes(boolean dynamicAttributes) {
+		_dynamicAttributes = dynamicAttributes;
 	}
 
 	public void setEvents(List<Attribute> events) {
@@ -190,6 +183,7 @@ public class Component extends BaseModel {
 	private String[] _authors;
 	private boolean _bodyContent;
 	private String _className;
+	private boolean _dynamicAttributes;
 	private List<Attribute> _events;
 	private String _module;
 	private String _package;

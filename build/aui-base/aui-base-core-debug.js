@@ -70,27 +70,48 @@
 	YUI.AUI = function(o) {
 		var instance = this;
 
+		// Need the current window, not A.config.win
+		var alloyInstance = window.Alloy;
+
 		if (o || instance instanceof AUI) {
 			var args = ALLOY.Array(arguments);
 
 			args.unshift(ALLOY.config);
 
-			var newInstance = YUI.apply(ALLOY.config.win, args);
+			var newInstance = YUI.apply(null, args);
 
 			AUI._uaExtensions(newInstance);
+			AUI._miscExtensions(newInstance);
 			AUI._guidExtensions(newInstance);
 
-			return newInstance;
+			var WIN = newInstance.config.win;
+
+			if (!WIN.YUI) {
+				WIN.YUI = YUI;
+			}
+
+			if (!WIN.AUI) {
+				WIN.AUI = AUI;
+			}
+
+			if (!WIN.Alloy) {
+				WIN.Alloy = newInstance;
+			}
+
+			alloyInstance = newInstance;
 		}
 
-		return ALLOY;
+		return alloyInstance;
 	};
 
 	var AUI = YUI.AUI;
 
 	AUI._guidExtensions = guidExtensions;
 
-	window.AUI = AUI;
+	var WIN = ALLOY.config.win;
+
+	WIN.AUI = AUI;
+	WIN.Alloy = ALLOY;
 
 	var UA = ALLOY.UA;
 
@@ -105,13 +126,14 @@
 
 			html5shiv: function(frag) {
 				var instance = this;
-				var doc = frag || document;
 
-				if (UA.ie && doc && doc.createElement) {
+				var DOC = frag || ALLOY.config.doc;
+
+				if (UA.ie && DOC && DOC.createElement) {
 					var elements = AUI.HTML5_ELEMENTS, length = elements.length;
 
 					while (length--) {
-						doc.createElement(elements[length]);
+						DOC.createElement(elements[length]);
 					}
 				}
 
@@ -125,16 +147,38 @@
 				ALLOY.mix(ALLOY.config, defaults, true, null, 0, true);
 			},
 
+			_miscExtensions: function(A) {
+				var instance = this;
+
+				var DOC = A.config.doc;
+
+				/*
+				* HTML5 Compatability for IE
+				*/
+
+				AUI.html5shiv(DOC);
+
+				/*
+				* Disable background image flickering in IE6
+				*/
+
+				var IE = A.UA.ie;
+
+				if (IE && IE <= 6) {
+					try {
+						DOC.execCommand('BackgroundImageCache', false, true);
+					}
+					catch (e) {
+					}
+				}
+			},
+
 			HTML5_ELEMENTS: 'abbr,article,aside,audio,canvas,command,datalist,details,figure,figcaption,footer,header,hgroup,keygen,mark,meter,nav,output,progress,section,source,summary,time,video'.split(',')
 		},
 		true
 	);
 
-	/*
-	* HTML5 Compatability for IE
-	*/
-
-	AUI.html5shiv();
+	AUI._miscExtensions(ALLOY);
 
 	/*
 		UA extensions
@@ -381,18 +425,6 @@
 	})();
 
 	AUI._uaExtensions(ALLOY);
-
-	/*
-	* Disable background image flickering in IE6
-	*/
-
-	if (UA.ie && UA.version.major <= 6) {
-		try {
-			document.execCommand('BackgroundImageCache', false, true);
-		}
-		catch (e) {
-		}
-	}
 })();
 AUI.add('aui-base-core', function(A) {
 var Lang = A.Lang,
@@ -406,10 +438,10 @@ A.mix(
 	AArray,
 	{
 		remove: function(a, from, to) {
-		  var rest = a.slice((to || from) + 1 || a.length);
-		  a.length = (from < 0) ? (a.length + from) : from;
+			var rest = a.slice((to || from) + 1 || a.length);
+			a.length = (from < 0) ? (a.length + from) : from;
 
-		  return a.push.apply(a, rest);
+			return a.push.apply(a, rest);
 		},
 
 		removeItem: function(a, item) {
@@ -422,6 +454,7 @@ A.mix(
 
 A.fn = function(fn, context, args) {
 	var wrappedFn;
+	var dynamicLookup;
 
 	// Explicitly set function arguments
 	if (!isNumber(fn)) {
@@ -431,7 +464,7 @@ A.fn = function(fn, context, args) {
 			xargs = AArray(xargs, 2, true);
 		}
 
-		var dynamicLookup = (isString(fn) && context);
+		dynamicLookup = (isString(fn) && context);
 
 		wrappedFn = function() {
 			var method = (!dynamicLookup) ? fn : context[fn];
@@ -446,7 +479,7 @@ A.fn = function(fn, context, args) {
 		fn = context;
 		context = args;
 
-		var dynamicLookup = (isString(fn) && context);
+		dynamicLookup = (isString(fn) && context);
 
 		wrappedFn = function() {
 			var method = (!dynamicLookup) ? fn : context[fn];
@@ -468,4 +501,4 @@ A.fn = function(fn, context, args) {
 	return wrappedFn;
 };
 
-}, '@VERSION@' ,{skinnable:false, requires:['aui-node','aui-component','aui-debounce','aui-delayed-task','aui-selector','aui-event-base','oop','yui-throttle']});
+}, '@VERSION@' ,{requires:['aui-node','aui-component','aui-debounce','aui-delayed-task','aui-selector','aui-event-base','oop','yui-throttle'], skinnable:false});

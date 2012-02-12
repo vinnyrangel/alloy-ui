@@ -16,4 +16,4 @@ A.getClassName = A.cached(
 	}
 );
 
-}, '@VERSION@' ,{requires:['classnamemanager'], skinnable:false, condition: {trigger: 'classnamemanager', test: function(){return true;}}});
+}, '@VERSION@' ,{skinnable:false, requires:['classnamemanager'], condition: {name: 'aui-classnamemanager', trigger: 'classnamemanager', test: function(){return true;}}});

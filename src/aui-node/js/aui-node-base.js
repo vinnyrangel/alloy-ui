@@ -23,6 +23,8 @@ var Lang = A.Lang,
 	prefix = Lang.String.prefix,
 
 	CONFIG = A.config,
+	DOC = CONFIG.doc,
+	WIN = CONFIG.win,
 
 	NODE_PROTO = Node.prototype,
 	NODELIST_PROTO = NodeList.prototype,
@@ -84,7 +86,7 @@ var Lang = A.Lang,
 		Parts of this file are used from jQuery (http://jquery.com)
 		Dual-licensed under MIT/GPL
 	*/
-	var div = document.createElement('div');
+	var div = DOC.createElement('div');
 
 	div.style.display = 'none';
 	div.innerHTML = '   <table></table>&nbsp;';
@@ -667,9 +669,26 @@ A.mix(NODE_PROTO, {
 	radioClass: function(cssClass) {
 		var instance = this;
 
-		instance.siblings().removeClass(cssClass);
+		var siblings = instance.siblings();
 
-		instance.addClass(cssClass);
+		if (isString(cssClass)) {
+			siblings.removeClass(cssClass);
+
+			instance.addClass(cssClass);
+		}
+		else if (isArray(cssClass)) {
+			var siblingNodes = siblings.getDOM();
+
+			var regex = getRegExp('(?:^|\\s+)(?:' + cssClass.join('|') + ')(?=\\s+|$)', 'g');
+			var node;
+
+			for (var i = siblingNodes.length - 1; i >= 0; i--) {
+				node = siblingNodes[i];
+				node.className = node.className.replace(regex, '');
+			}
+
+			instance.addClass(cssClass.join(' '));
+		}
 
 		return instance;
 	},
@@ -726,7 +745,7 @@ A.mix(NODE_PROTO, {
 				textField.select();
 			}
 
-			if (textField != document.activeElement) {
+			if (textField != DOC.activeElement) {
 				textField.focus();
 			}
 		}
@@ -1535,7 +1554,7 @@ A.mix(
 			var instance = this;
 
 			if (!instance._bodyNode) {
-				instance._bodyNode = A.one(CONFIG.doc.body);
+				instance._bodyNode = A.one(DOC.body);
 			}
 
 			return instance._bodyNode;
@@ -1550,7 +1569,7 @@ A.mix(
 			var instance = this;
 
 			if (!instance._documentNode) {
-				instance._documentNode = A.one(CONFIG.doc);
+				instance._documentNode = A.one(DOC);
 			}
 
 			return instance._documentNode;
@@ -1565,7 +1584,7 @@ A.mix(
 			var instance = this;
 
 			if (!instance._windowNode) {
-				instance._windowNode = A.one(CONFIG.win);
+				instance._windowNode = A.one(WIN);
 			}
 
 			return instance._windowNode;
@@ -1586,3 +1605,19 @@ A.allNS = function(ns, selector) {
 A.byIdNS = function(ns, id) {
 	return A.one(prefixSelector(ns, id));
 };
+
+// Patch for http://yuilibrary.com/projects/yui3/ticket/2531537
+
+var addMethod = NodeList.addMethod;
+
+AArray.each(
+	['hide', 'show'],
+	function(item, index, collection) {
+		addMethod(
+			item,
+			function() {
+				return this[item].apply(this, arguments);
+			}
+		);
+	}
+);

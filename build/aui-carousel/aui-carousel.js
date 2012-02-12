@@ -36,11 +36,11 @@ var Lang = A.Lang,
 		'<tpl for="items">',
 			'<li><a class="', CSS_MENU_ITEM, ' {[ $i == parent.activeIndex ? "', CSS_MENU_ITEM_ACTIVE, '" : "', CSS_MENU_ITEM_DEFAULT,'" ]}">{$index}</a></li>',
 		'</tpl>',
-		'<li><a class="', CSS_MENU_NEXT, '"></a></li>',
+		'<li><a class="', CSS_MENU_ITEM, ' ', CSS_MENU_NEXT, '">',
 		'</menu>'
 	),
 
-	UI_SRC = A.Widget.UI_SRC;
+	UI_SRC = A.Widget.UI_SRC,
 
 	MAP_EVENT_INFO = {
 		src: UI_SRC
@@ -81,7 +81,7 @@ var Carousel = A.Component.create(
 			nodeSelection: null,
 			nodeMenu: null,
 
-			initializer: function(){
+			initializer: function() {
 				var instance = this;
 
 				instance.animation = new A.Anim(
@@ -142,6 +142,8 @@ var Carousel = A.Component.create(
 			},
 
 			next: function() {
+				var instance = this;
+
 				instance._updateIndexNext();
 			},
 
@@ -453,7 +455,9 @@ var Carousel = A.Component.create(
 					newIndex = 0;
 				}
 
-				options.src = UI_SRC;
+				if (options) {
+					options.src = UI_SRC;
+				}
 
 				instance.set('activeIndex', newIndex, options);
 			},
@@ -469,7 +473,9 @@ var Carousel = A.Component.create(
 					newIndex = instance.nodeSelection.size() - 1;
 				}
 
-				options.src = UI_SRC;
+				if (options) {
+					options.src = UI_SRC;
+				}
 
 				instance.set('activeIndex', newIndex, options);
 			},
@@ -499,4 +505,4 @@ var Carousel = A.Component.create(
 
 A.Carousel = Carousel;
 
-}, '@VERSION@' ,{requires:['aui-base','aui-template','anim'], skinnable:true});
+}, '@VERSION@' ,{skinnable:true, requires:['aui-base','aui-template','anim']});

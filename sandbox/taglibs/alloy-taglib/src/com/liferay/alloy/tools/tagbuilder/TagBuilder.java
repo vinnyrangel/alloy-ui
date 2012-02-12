@@ -9,7 +9,9 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.xml.Document;
 import com.liferay.portal.kernel.xml.Element;
+import com.liferay.portal.kernel.xml.Node;
 import com.liferay.portal.kernel.xml.SAXReaderUtil;
+import com.liferay.portal.kernel.xml.XPath;
 import com.liferay.portal.util.FileImpl;
 import com.liferay.portal.xml.SAXReaderImpl;
 
@@ -29,6 +31,21 @@ import java.util.Map;
  * @author Bruno Basto
  */
 public class TagBuilder {
+
+	public static void main(String[] args) throws Exception {
+		String componentsXML = System.getProperty("tagbuilder.components.xml");
+		String templatesDir = System.getProperty("tagbuilder.templates.dir");
+		String javaDir = System.getProperty("tagbuilder.java.dir");
+		String javaPackage = System.getProperty("tagbuilder.java.package");
+		String jspDir = System.getProperty("tagbuilder.jsp.dir");
+		String jspCommonInitPath = System.getProperty("tagbuilder.jsp.common.init.path");
+		String tldDir = System.getProperty("tagbuilder.tld.dir");
+		String docrootDir = System.getProperty("tagbuilder.docroot.dir");
+
+		new TagBuilder(
+			componentsXML, templatesDir, javaDir, docrootDir,
+			javaPackage, jspDir, jspCommonInitPath, tldDir);
+	}
 
 	public TagBuilder(
 			String componentsXML, String templatesDir, String javaDir,
@@ -59,8 +76,6 @@ public class TagBuilder {
 
 		_componentsExtDoc = new ArrayList<Document>();
 
-		_componentsDoc = SAXReaderUtil.read("<taglibs></taglibs>");
-
 		for (String componentExtXML : _componentsXML) {
 			File extFile = new File(componentExtXML);
 
@@ -72,213 +87,59 @@ public class TagBuilder {
 		_create();
 	}
 
-	public static void main(String[] args) throws Exception {
-		String componentsXML = System.getProperty("tagbuilder.components.xml");
-		String templatesDir = System.getProperty("tagbuilder.templates.dir");
-		String javaDir = System.getProperty("tagbuilder.java.dir");
-		String javaPackage = System.getProperty("tagbuilder.java.package");
-		String jspDir = System.getProperty("tagbuilder.jsp.dir");
-		String jspCommonInitPath = System.getProperty("tagbuilder.jsp.common.init.path");
-		String tldDir = System.getProperty("tagbuilder.tld.dir");
-		String docrootDir = System.getProperty("tagbuilder.docroot.dir");
-
-		new TagBuilder(
-			componentsXML, templatesDir, javaDir, docrootDir,
-			javaPackage, jspDir, jspCommonInitPath, tldDir);
-	}
-
-	private void _create() throws Exception {
-		List<Component> components = _getAllComponents();
-
-		for (Component component : components) {
-			Map<String, Object> context = _getTemplateContext(component);
-
-			_createBaseTag(component, context);
-
-			if (component.getWriteJSP()) {
-				_createPageJSP(component, context);
-			}
-
-			_createTag(component, context);
-		}
-
-		_createCommonInitJSP();
-		_createTld();
-	}
-
-	private void _createBaseTag(
-			Component component, Map<String, Object> context)
-		throws Exception {
-
-		StringBuilder sb = new StringBuilder();
-
-		sb.append(_getJavaOutputBaseDir(component));
-		sb.append(_BASE_CLASS_PREFIX);
-		sb.append(component.getClassName());
-		sb.append(_CLASS_SUFFIX);
-
-		String content = _processTemplate(_tplTagBase, context);
-
-		File tagFile = new File(sb.toString());
-
-		_writeFile(tagFile, content);
-	}
-
-	private void _createCommonInitJSP() throws Exception {
-		Map<String, Object> context = _getDefaultTemplateContext();
-
-		String contentCommonInitJsp = _processTemplate(_tplCommonInitJsp, context);
-
-		StringBuilder sb = new StringBuilder();
-
-		sb.append(_docrootDir);
-		sb.append(StringPool.SLASH);
-		sb.append(_jspCommonInitPath);
-
-		File commonInitFile = new File(sb.toString());
-
-		_writeFile(commonInitFile, contentCommonInitJsp, false);
-	}
-
-	private void _createPageJSP(
-			Component component, Map<String, Object> context)
-		throws Exception {
-
-		String pathName = component.getUncamelizedName(StringPool.UNDERLINE);
-		String path = _getJspOutputDir(component).concat(pathName);
-
-		String contentJsp = _processTemplate(_tplJsp, context);
-		String contentInitJsp = _processTemplate(_tplInitJsp, context);
-
-		File initFile = new File(path.concat(_INIT_PAGE));
-		File initExtFile = new File(path.concat(_INIT_EXT_PAGE));
-
-		_writeFile(initFile, contentInitJsp);
-		_writeFile(initExtFile, StringPool.BLANK, false);
-
-		if (component.isBodyContent()) {
-			String contentStart = _processTemplate(_tplStartJsp, context);
-
-			File startFile = new File(path.concat(_START_PAGE));
-
-			_writeFile(startFile, contentStart, false);
-		}
-		else {
-			File pageFile = new File(path.concat(_PAGE));
-
-			_writeFile(pageFile, contentJsp, false);
-		}
-	}
-
-	private void _createTag(
-			Component component, Map<String, Object> context)
-		throws Exception {
-
-		StringBuilder sb = new StringBuilder();
-
-		sb.append(_getJavaOutputDir(component));
-		sb.append(component.getClassName());
-		sb.append(_CLASS_SUFFIX);
-
-		String content = _processTemplate(_tplTag, context);
-
-		File tagFile = new File(sb.toString());
-
-		_writeFile(tagFile, content, false);
-	}
-
-	private void _createTld() throws Exception {
-		Map<String, Object> context = _getDefaultTemplateContext();
-
-		for (Document doc : _componentsExtDoc) {
-			Element root = doc.getRootElement();
-			String shortName = GetterUtil.getString(
-				root.attributeValue("short-name"), _DEFAULT_TAGLIB_SHORT_NAME);
-			String uri = GetterUtil.getString(
-				root.attributeValue("uri"), _DEFAULT_TAGLIB_URI);
-			String version = GetterUtil.getString(
-				root.attributeValue("tlib-version"), _DEFAULT_TAGLIB_VERSION);
-
-			context.put("alloyComponent", shortName.equals(_DEFAULT_NAMESPACE));
-			context.put("shortName", shortName);
-			context.put("uri", uri);
-			context.put("version", version);
-			context.put("components", _getComponents(doc));
-
-			String content = _processTemplate(_tplTld, context);
-
-			String tldFilePath = _tldDir.concat(
-				shortName).concat(_TLD_EXTENSION);
-
-			File tldFile = new File(tldFilePath);
-
-			Document outputDoc = SAXReaderUtil.read(content);
-
-			if (tldFile.exists()) {
-				outputDoc = _mergeTlds(SAXReaderUtil.read(tldFile), outputDoc);
-			}
-
-			_writeFile(tldFile, outputDoc.formattedString());
-		}
-	}
-
-	private List<Component> _getAllComponents() throws Exception {
+	protected List<Component> getAllComponents() throws Exception {
 		Document doc = SAXReaderUtil.createDocument();
-		Element root = _componentsDoc.getRootElement().createCopy();
+
+		Document taglibsDoc = SAXReaderUtil.read("<taglibs></taglibs>");
+
+		Element root = taglibsDoc.getRootElement();
 
 		for (Document extDoc : _componentsExtDoc) {
-			Document componentsDoc = extDoc;
-			Element extRoot = componentsDoc.getRootElement();
+			Element extRoot = extDoc.getRootElement();
 
-			String extDefaultPackage = extRoot.attributeValue("short-name");
-			List<Element> allExtComponentNodes = extRoot.elements("component");
+			String defaultPackage = extRoot.attributeValue("short-name");
+			List<Element> extComponentNodes = extRoot.elements("component");
 
-			// Set package on each extNode to not inherit the shot-name
-			// from the original document
-			for (Element extNode : allExtComponentNodes) {
+			for (Element extComponent : extComponentNodes) {
 				String extComponentPackage = GetterUtil.getString(
-					extNode.attributeValue("package"), extDefaultPackage);
+					extComponent.attributeValue("package"), defaultPackage);
 
-				extNode.addAttribute("package", extComponentPackage);
+				extComponent.addAttribute("package", extComponentPackage);
 			}
 
-			Document parentDoc = _getComponentsDoc(
+			Document parentDoc = getComponentsDocByShortName(
 				extDoc.getRootElement().attributeValue("extends"));
 
 			if (parentDoc != null) {
-				componentsDoc = _mergeXMLAttributes(extDoc, parentDoc);
+				extDoc = mergeXMLAttributes(extDoc, parentDoc);
 			}
 
-			Element extRootAuthors = extRoot.element(_AUTHORS);
+			Element authors = extRoot.element(_AUTHORS);
 
-			List<Element> extComponents = extRoot.elements("component");
+			List<Element> components = extRoot.elements("component");
 
-			for (Element extComponent : extComponents) {
-				Element extComoponentCopy = extComponent.createCopy();
+			for (Element component : components) {
+				Element copy = component.createCopy();
+				Element componentAuthors = copy.element("authors");
 
-				Element extComponentAuthors =
-					extComoponentCopy.element("authors");
-
-				if ((extRootAuthors != null) &&
-					(extComponentAuthors == null)) {
-
-					extComoponentCopy.add(extRootAuthors.createCopy());
+				if ((authors != null) && (componentAuthors == null)) {
+					copy.add(authors.createCopy());
 				}
 
-				root.add(extComoponentCopy);
+				root.add(copy);
 			}
 		}
 
-		doc.add(root);
+		doc.add(root.createCopy());
 
-		return _getComponents(doc);
+		return getComponents(doc);
 	}
 
-	private List<Attribute> _getAttributes(Element componentNode) {
-		return _getAttributes(componentNode, "attributes", "attribute");
+	protected List<Attribute> getAttributes(Element componentNode) {
+		return getAttributes(componentNode, "attributes", "attribute");
 	}
 
-	private List<Attribute> _getAttributes(
+	protected List<Attribute> getAttributes(
 		Element componentNode, String group, String nodeName) {
 
 		List<Element> nodes = Collections.emptyList();
@@ -292,30 +153,41 @@ public class TagBuilder {
 		}
 
 		for (Element attributeNode : nodes) {
+			String defaultValue = attributeNode.elementText("defaultValue");
+			String description = attributeNode.elementText("description");
 			String name = attributeNode.elementText("name");
 			String type = GetterUtil.getString(
 				attributeNode.elementText("type"), _DEFAULT_TYPE);
-
 			String inputType = GetterUtil.getString(
 				attributeNode.elementText("inputType"), type);
-
 			String outputType = GetterUtil.getString(
 				attributeNode.elementText("outputType"), type);
 
-			String defaultValue = attributeNode.elementText("defaultValue");
-			String description = attributeNode.elementText("description");
+			boolean gettable = GetterUtil.getBoolean(
+				attributeNode.elementText("gettable"), true);
 			boolean required = GetterUtil.getBoolean(
 				attributeNode.elementText("required"));
+			boolean settable = GetterUtil.getBoolean(
+				attributeNode.elementText("settable"), true);
 
-			attributes.add(
-				new Attribute(name, inputType, outputType, defaultValue,
-				description, required));
+			Attribute attribute = new Attribute();
+
+			attribute.setDefaultValue(defaultValue);
+			attribute.setDescription(description);
+			attribute.setGettable(gettable);
+			attribute.setInputType(inputType);
+			attribute.setName(name);
+			attribute.setOutputType(outputType);
+			attribute.setRequired(required);
+			attribute.setSettable(settable);
+
+			attributes.add(attribute);
 		}
 
 		return attributes;
 	}
 
-	private String[] _getAuthorList(Element element) {
+	protected String[] getAuthorList(Element element) {
 		List<String> authors = new ArrayList<String>();
 
 		if (element != null) {
@@ -338,7 +210,7 @@ public class TagBuilder {
 		}
 	}
 
-	private Element _getComponentNode(Document doc, String name) {
+	protected Element getComponentNode(Document doc, String name) {
 		List<Element> components = doc.getRootElement().elements(_COMPONENT);
 
 		for (Element component : components) {
@@ -350,9 +222,10 @@ public class TagBuilder {
 		return null;
 	}
 
-	private List<Component> _getComponents(Document doc) throws Exception {
-		List<Component> components = new ArrayList<Component>();
+	protected List<Component> getComponents(Document doc) throws Exception {
 		Element root = doc.getRootElement();
+
+		List<Component> components = new ArrayList<Component>();
 
 		String defaultPackage = root.attributeValue("short-name");
 		List<Element> allComponentNodes = root.elements("component");
@@ -372,6 +245,9 @@ public class TagBuilder {
 			String className = GetterUtil.getString(
 				node.attributeValue("className"));
 
+			boolean dynamicAttributes = GetterUtil.getBoolean(
+				node.attributeValue("dynamicAttributes"), true);
+
 			String module = GetterUtil.getString(
 				node.attributeValue("module"));
 
@@ -381,12 +257,22 @@ public class TagBuilder {
 			boolean writeJSP = GetterUtil.getBoolean(
 				node.attributeValue("writeJSP"), true);
 
-			Component component = new Component(
-				componentPackage, name, alloyComponent, module, bodyContent,
-				_getAttributes(node), _getPrefixedEvents(node),
-				_getAuthorList(node));
+			String[] authors = getAuthorList(node);
+			List<Attribute> attributes = getAttributes(node);
+			List<Attribute> events = getPrefixedEvents(node);
 
+			Component component = new Component();
+
+			component.setAlloyComponent(alloyComponent);
+			component.setAttributes(attributes);
+			component.setAuthors(authors);
+			component.setBodyContent(bodyContent);
 			component.setClassName(className);
+			component.setDynamicAttributes(dynamicAttributes);
+			component.setEvents(events);
+			component.setModule(module);
+			component.setName(name);
+			component.setPackage(componentPackage);
 			component.setParentClass(parentClass);
 			component.setWriteJSP(writeJSP);
 
@@ -396,7 +282,7 @@ public class TagBuilder {
 		return components;
 	}
 
-	private Document _getComponentsDoc(String name) {
+	protected Document getComponentsDocByShortName(String name) {
 		for (Document doc : _componentsExtDoc) {
 			Element root = doc.getRootElement();
 
@@ -408,7 +294,7 @@ public class TagBuilder {
 		return null;
 	}
 
-	private Map<String, Object> _getDefaultTemplateContext() {
+	protected Map<String, Object> getDefaultTemplateContext() {
 		Map<String, Object> context = new HashMap<String, Object>();
 
 		context.put("jspCommonInitPath", _jspCommonInitPath);
@@ -418,7 +304,7 @@ public class TagBuilder {
 		return context;
 	}
 
-	private Element _getElementByName(List<Element> elements, String name) {
+	protected Element getElementByName(List<Element> elements, String name) {
 		for (Element element : elements) {
 			if (name.equals(element.elementText("name"))) {
 				return element;
@@ -428,17 +314,17 @@ public class TagBuilder {
 		return null;
 	}
 
-	private String _getJavaOutputBaseDir(Component component) {
+	protected String getJavaOutputBaseDir(Component component) {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append(_getJavaOutputDir(component));
+		sb.append(getJavaOutputDir(component));
 		sb.append(_BASE);
 		sb.append(StringPool.SLASH);
 
 		return sb.toString();
 	}
 
-	private String _getJavaOutputDir(Component component) {
+	protected String getJavaOutputDir(Component component) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(_javaDir);
@@ -448,7 +334,7 @@ public class TagBuilder {
 		return sb.toString();
 	}
 
-	private String _getJspDir(Component component) {
+	protected String getJspDir(Component component) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(_jspDir);
@@ -458,7 +344,7 @@ public class TagBuilder {
 		return sb.toString();
 	}
 
-	private String _getJspOutputDir(Component component) {
+	protected String getJspOutputDir(Component component) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(_docrootDir);
@@ -470,11 +356,11 @@ public class TagBuilder {
 		return sb.toString();
 	}
 
-	private List<Attribute> _getPrefixedEvents(Element componentNode) {
-		List<Attribute> afterEvents = _getAttributes(
+	protected List<Attribute> getPrefixedEvents(Element componentNode) {
+		List<Attribute> afterEvents = getAttributes(
 			componentNode, "events", "event");
 
-		List<Attribute> onEvents = _getAttributes(
+		List<Attribute> onEvents = getAttributes(
 			componentNode, "events", "event");
 
 		List<Attribute> prefixedEvents = new ArrayList<Attribute>();
@@ -502,10 +388,10 @@ public class TagBuilder {
 		return prefixedEvents;
 	}
 
-	private Map<String, Object> _getTemplateContext(Component component) {
-		Map<String, Object> context = _getDefaultTemplateContext();
+	protected Map<String, Object> getTemplateContext(Component component) {
+		Map<String, Object> context = getDefaultTemplateContext();
 
-		String jspRelativePath = _getJspDir(component).concat(
+		String jspRelativePath = getJspDir(component).concat(
 			component.getUncamelizedName(StringPool.UNDERLINE));
 
 		context.put("component", component);
@@ -515,60 +401,75 @@ public class TagBuilder {
 		return context;
 	}
 
-	private Document _mergeTlds(Document doc1, Document doc2) {
-		Document doc = SAXReaderUtil.createDocument();
+	protected Document mergeTlds(Document sourceDoc, Document targetDoc) {
+		Element targetRoot = targetDoc.getRootElement();
 
-		doc.setRootElement(doc1.getRootElement().createCopy());
+		XPath xpathTags = SAXReaderUtil.createXPath(
+			"//tld:tag", _TLD_XPATH_PREFIX, _TLD_XPATH_URI);
 
-		List<Element> tags1 = doc1.getRootElement().elements("tag");
-		List<Element> tags2 = doc2.getRootElement().elements("tag");
+		List<Node> sources = xpathTags.selectNodes(sourceDoc);
 
-		Map<String, Element> tags1Index = new HashMap<String, Element>();
-		Map<String, Map<String, Element>> tags1AttributesIndex =
-			new HashMap<String, Map<String, Element>>();
+		for (Node source : sources) {
+			Element sourceElement = (Element)source;
 
-		for (Element tag1 : tags1) {
-			String tag1Name = tag1.elementText("name");
+			String sourceName = sourceElement.elementText("name");
 
-			tags1Index.put(tag1Name, tag1);
+			String xpathTagValue = "//tld:tag[tld:name='" + sourceName + "']";
 
-			Map<String, Element> tag1AttributesIndex =
-				new HashMap<String, Element>();
+			XPath xpathTag = SAXReaderUtil.createXPath(
+				xpathTagValue, _TLD_XPATH_PREFIX, _TLD_XPATH_URI);
 
-			for (Element attr1 : tag1.elements("attribute")) {
-				tag1AttributesIndex.put(attr1.elementText("name"), attr1);
-			}
+			List<Node> targets = xpathTag.selectNodes(targetDoc);
 
-			tags1AttributesIndex.put(tag1Name, tag1AttributesIndex);
-		}
+			if (targets.size() > 0) {
+				Element targetElement = (Element)targets.get(0);
 
-		for (Element tag2 : tags2) {
-			String tag2Name = tag2.elementText("name");
+				XPath xpathAttributes = SAXReaderUtil.createXPath(
+					xpathTagValue + "//tld:attribute", _TLD_XPATH_PREFIX,
+					_TLD_XPATH_URI);
 
-			Map<String, Element> tag1AttributesIndex =
-				tags1AttributesIndex.get(tag2Name);
+				List<Node> sourceAttributes = xpathAttributes.selectNodes(
+					source);
 
-			if (tags1Index.containsKey(tag2Name)) {
-				for (Element attr2 : tag2.elements("attribute")) {
-					String attr2Name = attr2.attributeValue("name");
+				for (Node sourceAttribute : sourceAttributes) {
+					Element sourceAttributeElement = (Element)sourceAttribute;
 
-					if (tag1AttributesIndex.containsKey(attr2Name)) {
-						Element attr1 = tag1AttributesIndex.get(attr2Name);
+					String attributeName =
+						sourceAttributeElement.elementText("name");
 
-						tag2.remove(attr1);
-						tag2.add(attr2);
+					String xpathAttributeValue = "//tld:attribute[tld:name='" +
+							attributeName + "']";
+
+					XPath xpathAttribute = SAXReaderUtil.createXPath(
+						xpathTagValue + xpathAttributeValue, _TLD_XPATH_PREFIX,
+						_TLD_XPATH_URI);
+
+					Node targetAttribute =
+						xpathAttribute.selectSingleNode(targetElement);
+
+					if (targetAttribute != null) {
+						targetAttribute.detach();
 					}
+
+					targetElement.add(sourceAttributeElement.createCopy());
+				}
+
+				Element dynamicAttrElement =
+					targetElement.element("dynamic-attributes");
+
+				if (dynamicAttrElement != null) {
+					targetElement.add(dynamicAttrElement.detach());
 				}
 			}
 			else {
-				doc.getRootElement().add(tag2.createCopy());
+				targetRoot.add(sourceElement.createCopy());
 			}
 		}
 
-		return doc;
+		return targetDoc;
 	}
 
-	private Document _mergeXMLAttributes(Document doc1, Document doc2) {
+	protected Document mergeXMLAttributes(Document doc1, Document doc2) {
 		Element doc1Root = doc1.getRootElement();
 
 		Element docRoot = doc1Root.createCopy();
@@ -582,7 +483,7 @@ public class TagBuilder {
 		for (Element doc1Component : doc1Components) {
 			String name = doc1Component.attributeValue("name");
 
-			Element doc2Component = _getComponentNode(doc2, name);
+			Element doc2Component = getComponentNode(doc2, name);
 
 			if (doc2Component != null) {
 				Element doc2AttributesNode = doc2Component.element(_ATTRIBUTES);
@@ -595,7 +496,7 @@ public class TagBuilder {
 						doc1Component.element(_ATTRIBUTES);
 
 					for (Element doc2Attribute : doc2Attributes) {
-						Element doc1Attribute = _getElementByName(
+						Element doc1Attribute = getElementByName(
 							doc1AttributesNode.elements("attribute"),
 							doc2Attribute.elementText("name"));
 
@@ -613,7 +514,7 @@ public class TagBuilder {
 					Element doc1EventsNode = doc1Component.element(_EVENTS);
 
 					for (Element doc2Event : doc2Events) {
-						Element doc1Event = _getElementByName(
+						Element doc1Event = getElementByName(
 							doc1EventsNode.elements("event"),
 							doc2Event.elementText("name"));
 
@@ -630,18 +531,18 @@ public class TagBuilder {
 		return doc;
 	}
 
-	private String _processTemplate(String name, Map<String, Object> context)
+	protected String processTemplate(String name, Map<String, Object> context)
 		throws Exception {
 
 		return com.liferay.portal.kernel.util.StringUtil.replace(
 			FreeMarkerUtil.process(name, context), '\r', StringPool.BLANK);
 	}
 
-	private void _writeFile(File file, String content) {
-		_writeFile(file, content, true);
+	protected void writeFile(File file, String content) {
+		writeFile(file, content, true);
 	}
 
-	private void _writeFile(File file, String content, boolean overwrite) {
+	protected void writeFile(File file, String content, boolean overwrite) {
 		if (FileUtil.getFile() == null) {
 			(new FileUtil()).setFile(new FileImpl());
 		}
@@ -665,6 +566,144 @@ public class TagBuilder {
 		}
 	}
 
+	private void _create() throws Exception {
+		List<Component> components = getAllComponents();
+
+		for (Component component : components) {
+			Map<String, Object> context = getTemplateContext(component);
+
+			_createBaseTag(component, context);
+
+			if (component.getWriteJSP()) {
+				_createPageJSP(component, context);
+			}
+
+			_createTag(component, context);
+		}
+
+		_createCommonInitJSP();
+		_createTld();
+	}
+
+	private void _createBaseTag(
+			Component component, Map<String, Object> context)
+		throws Exception {
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(getJavaOutputBaseDir(component));
+		sb.append(_BASE_CLASS_PREFIX);
+		sb.append(component.getClassName());
+		sb.append(_CLASS_SUFFIX);
+
+		String content = processTemplate(_tplTagBase, context);
+
+		File tagFile = new File(sb.toString());
+
+		writeFile(tagFile, content);
+	}
+
+	private void _createCommonInitJSP() throws Exception {
+		Map<String, Object> context = getDefaultTemplateContext();
+
+		String contentCommonInitJsp = processTemplate(_tplCommonInitJsp, context);
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(_docrootDir);
+		sb.append(StringPool.SLASH);
+		sb.append(_jspCommonInitPath);
+
+		File commonInitFile = new File(sb.toString());
+
+		writeFile(commonInitFile, contentCommonInitJsp, false);
+	}
+
+	private void _createPageJSP(
+			Component component, Map<String, Object> context)
+		throws Exception {
+
+		String pathName = component.getUncamelizedName(StringPool.UNDERLINE);
+		String path = getJspOutputDir(component).concat(pathName);
+
+		String contentJsp = processTemplate(_tplJsp, context);
+		String contentInitJsp = processTemplate(_tplInitJsp, context);
+
+		File initFile = new File(path.concat(_INIT_PAGE));
+		File initExtFile = new File(path.concat(_INIT_EXT_PAGE));
+
+		writeFile(initFile, contentInitJsp);
+		writeFile(initExtFile, StringPool.BLANK, false);
+
+		if (component.isBodyContent()) {
+			String contentStart = processTemplate(_tplStartJsp, context);
+
+			File startFile = new File(path.concat(_START_PAGE));
+
+			writeFile(startFile, contentStart, false);
+		}
+		else {
+			File pageFile = new File(path.concat(_PAGE));
+
+			writeFile(pageFile, contentJsp, false);
+		}
+	}
+
+	private void _createTag(
+			Component component, Map<String, Object> context)
+		throws Exception {
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(getJavaOutputDir(component));
+		sb.append(component.getClassName());
+		sb.append(_CLASS_SUFFIX);
+
+		String content = processTemplate(_tplTag, context);
+
+		File tagFile = new File(sb.toString());
+
+		writeFile(tagFile, content, false);
+	}
+
+	private void _createTld() throws Exception {
+		Map<String, Object> context = getDefaultTemplateContext();
+
+		for (Document doc : _componentsExtDoc) {
+			Element root = doc.getRootElement();
+
+			String shortName = GetterUtil.getString(
+				root.attributeValue("short-name"), _DEFAULT_TAGLIB_SHORT_NAME);
+			String uri = GetterUtil.getString(
+				root.attributeValue("uri"), _DEFAULT_TAGLIB_URI);
+			String version = GetterUtil.getString(
+				root.attributeValue("tlib-version"), _DEFAULT_TAGLIB_VERSION);
+
+			context.put("alloyComponent", shortName.equals(_DEFAULT_NAMESPACE));
+			context.put("shortName", shortName);
+			context.put("uri", uri);
+			context.put("version", version);
+			context.put("components", getComponents(doc));
+
+			String tldFilePath = _tldDir.concat(
+				shortName).concat(_TLD_EXTENSION);
+
+			File tldFile = new File(tldFilePath);
+
+			String content = processTemplate(_tplTld, context);
+
+			Document source = SAXReaderUtil.read(content);
+
+			if (tldFile.exists()) {
+				Document target = SAXReaderUtil.read(tldFile);
+
+				source = mergeTlds(source, target);
+			}
+
+			writeFile(tldFile, source.formattedString());
+		}
+	}
+
 	public static final String[] DEFAULT_AUTHORS = new String[] {
 		"Eduardo Lundgren", "Bruno Basto", "Nathan Cavanaugh"
 	};
@@ -684,7 +723,6 @@ public class TagBuilder {
 	private static final String _DEFAULT_TAGLIB_URI = "http://alloy.liferay.com/tld/alloy";
 	private static final String _DEFAULT_TAGLIB_VERSION = "1.0";
 	private static final String _DEFAULT_TYPE = "java.lang.Object";
-	private static final String _END_PAGE = "/end.jsp";
 	private static final String _EVENT = "event";
 	private static final String _EVENTS = "events";
 	private static final String _INIT_EXT_PAGE = "/init-ext.jspf";
@@ -693,8 +731,9 @@ public class TagBuilder {
 	private static final String _PAGE = "/page.jsp";
 	private static final String _START_PAGE = "/start.jsp";
 	private static final String _TLD_EXTENSION = ".tld";
+	private static final String _TLD_XPATH_PREFIX = "tld";
+	private static final String _TLD_XPATH_URI = "http://java.sun.com/xml/ns/j2ee";
 
-	private Document _componentsDoc;
 	private List<Document> _componentsExtDoc;
 	private List<String> _componentsXML;
 	private String _javaDir;

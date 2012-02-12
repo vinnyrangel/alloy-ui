@@ -1,14 +1,16 @@
 // API inspired on the amazing jQuery Form Validation - http://jquery.bassistance.de/validate/
 
-var L = A.Lang,
-	O = A.Object,
-	isBoolean = L.isBoolean,
-	isDate = L.isDate,
-	isEmpty = O.isEmpty,
-	isFunction = L.isFunction,
-	isObject = L.isObject,
-	isString = L.isString,
-	trim = L.trim,
+var Lang = A.Lang,
+	AObject = A.Object,
+	isBoolean = Lang.isBoolean,
+	isDate = Lang.isDate,
+	isEmpty = AObject.isEmpty,
+	isFunction = Lang.isFunction,
+	isObject = Lang.isObject,
+	isString = Lang.isString,
+	trim = Lang.trim,
+
+	getRegExp = A.DOM._getRegExp,
 
 	DASH = '-',
 	DOT = '.',
@@ -17,6 +19,7 @@ var L = A.Lang,
 	INVALID_DATE = 'Invalid Date',
 	PIPE = '|',
 
+	ARIA_REQUIRED = 'aria-required',
 	BLUR_HANDLERS = 'blurHandlers',
 	CHECKBOX = 'checkbox',
 	CONTAINER = 'container',
@@ -67,8 +70,8 @@ var L = A.Lang,
 	CSS_MESSAGE = getCN(FORM_VALIDATOR, MESSAGE),
 	CSS_STACK_ERROR = getCN(FORM_VALIDATOR, STACK, ERROR),
 
-	TPL_MESSAGE = '<div class="'+CSS_MESSAGE+'"></div>',
-	TPL_STACK_ERROR = '<label class="'+CSS_STACK_ERROR+'"></label>',
+	TPL_MESSAGE = '<div class="' + CSS_MESSAGE + '" role="alert"></div>',
+	TPL_STACK_ERROR = '<label class="' + CSS_STACK_ERROR + '"></label>',
 
 	UI_ATTRS = [ EXTRACT_RULES, VALIDATE_ON_BLUR, VALIDATE_ON_INPUT ];
 
@@ -117,7 +120,7 @@ YUI.AUI.defaults.FormValidator = {
 				// convert syntax (jpg, png) or (jpg png) to regex syntax (jpg|png)
 				var extensions = ruleValue.split(/,\s*|\b\s*/).join(PIPE);
 
-				regex = new RegExp('[.](' + extensions + ')$', 'i');
+				regex = getRegExp('[.](' + extensions + ')$', 'i');
 			}
 
 			return regex && regex.test(val);
@@ -302,6 +305,8 @@ var FormValidator = A.Component.create({
 			instance.errors = {};
 			instance.inputHandlers = [];
 			instance.stackErrorContainers = {};
+
+			instance.after('render', instance._setARIARoles);
 		},
 
 		bindUI: function() {
@@ -313,6 +318,7 @@ var FormValidator = A.Component.create({
 
 		addFieldError: function(field, ruleName) {
 			var instance = this;
+
 			var errors = instance.errors;
 			var name = field.get(NAME);
 
@@ -344,6 +350,7 @@ var FormValidator = A.Component.create({
 
 		findFieldContainer: function(field) {
 			var instance = this;
+
 			var fieldContainer = instance.get(FIELD_CONTAINER);
 
 			if (fieldContainer) {
@@ -353,6 +360,7 @@ var FormValidator = A.Component.create({
 
 		focusInvalidField: function() {
 			var instance = this;
+
 			var contentBox = instance.get(CONTENT_BOX);
 			var field = contentBox.one(DOT+CSS_ERROR);
 
@@ -375,7 +383,7 @@ var FormValidator = A.Component.create({
 			var instance = this;
 
 			if (isString(field)) {
-				field = instance.getElementsByName(field).item(0);
+				field = instance.get(CONTENT_BOX).one('[name="' + field + '"]');
 			}
 
 			return field;
@@ -389,6 +397,7 @@ var FormValidator = A.Component.create({
 
 		getFieldStackErrorContainer: function(field) {
 			var instance = this;
+
 			var name = field.get(NAME);
 			var stackContainers = instance.stackErrorContainers;
 
@@ -401,6 +410,7 @@ var FormValidator = A.Component.create({
 
 		getFieldErrorMessage: function(field, rule) {
 			var instance = this;
+
 			var fieldName = field.get(NAME);
 			var fieldStrings = instance.get(FIELD_STRINGS)[fieldName] || {};
 			var fieldRules = instance.get(RULES)[fieldName];
@@ -421,7 +431,7 @@ var FormValidator = A.Component.create({
 
 			var message = (fieldStrings[rule] || strings[rule] || strings.DEFAULT);
 
-			return L.sub(message, substituteRulesMap);
+			return Lang.sub(message, substituteRulesMap);
 		},
 
 		hasErrors: function() {
@@ -432,6 +442,7 @@ var FormValidator = A.Component.create({
 
 		highlight: function(field, valid) {
 			var instance = this;
+
 			var fieldContainer = instance.findFieldContainer(field);
 
 			instance._highlightHelper(
@@ -497,6 +508,7 @@ var FormValidator = A.Component.create({
 
 		resetField: function(field) {
 			var instance = this;
+
 			var stackContainer = instance.getFieldStackErrorContainer(field);
 
 			stackContainer.remove();
@@ -508,6 +520,7 @@ var FormValidator = A.Component.create({
 
 		resetFieldCss: function(field) {
 			var instance = this;
+
 			var fieldContainer = instance.findFieldContainer(field);
 
 			var removeClasses = function(elem, classAttrs) {
@@ -526,6 +539,7 @@ var FormValidator = A.Component.create({
 
 		validatable: function(field) {
 			var instance = this;
+
 			var fieldRules = instance.get(RULES)[field.get(NAME)];
 
 			var required = instance.normalizeRuleValue(fieldRules.required);
@@ -548,6 +562,7 @@ var FormValidator = A.Component.create({
 
 		validateField: function(field) {
 			var instance = this;
+
 			var fieldNode = instance.getField(field);
 
 			if (fieldNode) {
@@ -565,8 +580,28 @@ var FormValidator = A.Component.create({
 			}
 		},
 
+		// helper method for k-weight optimizations
+		_bindValidateHelper: function(bind, evType, fn, handler) {
+			var instance = this;
+
+			instance._unbindHandlers(handler);
+
+			if (bind) {
+				instance.eachRule(
+					function(rule, fieldName) {
+						var field = instance.getElementsByName(fieldName);
+
+						instance[handler].push(
+							field.on(evType, A.bind(fn, instance))
+						);
+					}
+				);
+			}
+		},
+
 		_bindValidation: function() {
 			var instance = this;
+
 			var form = instance.get(CONTENT_BOX);
 
 			form.on(EV_RESET, A.bind(instance._onFormReset, instance));
@@ -578,9 +613,12 @@ var FormValidator = A.Component.create({
 
 			// create publish function for kweight optimization
 			var publish = function(name, fn) {
-				instance.publish(name, {
-		            defaultFn: fn
-		        });
+				instance.publish(
+					name,
+					{
+						defaultFn: fn
+					}
+				);
 			};
 
 			publish(
@@ -601,6 +639,7 @@ var FormValidator = A.Component.create({
 
 		_defErrorFieldFn: function(event) {
 			var instance = this;
+
 			var validator = event.validator;
 			var field = validator.field;
 
@@ -621,6 +660,7 @@ var FormValidator = A.Component.create({
 
 		_defValidFieldFn: function(event) {
 			var instance = this;
+
 			var field = event.validator.field;
 
 			instance.unhighlight(field);
@@ -628,6 +668,7 @@ var FormValidator = A.Component.create({
 
 		_defValidateFieldFn: function(event) {
 			var instance = this;
+
 			var field = event.validator.field;
 			var fieldRules = instance.get(RULES)[field.get(NAME)];
 
@@ -679,6 +720,7 @@ var FormValidator = A.Component.create({
 
 		_onBlurField: function(event) {
 			var instance = this;
+
 			var fieldName = event.currentTarget.get(NAME);
 
 			instance.validateField(fieldName);
@@ -719,23 +761,20 @@ var FormValidator = A.Component.create({
 			instance.resetAllFields();
 		},
 
-		// helper method for k-weight optimizations
-		_bindValidateHelper: function(bind, evType, fn, handler) {
+		_setARIARoles: function() {
 			var instance = this;
 
-			instance._unbindHandlers(handler);
+			instance.eachRule(
+				function(rule, fieldName) {
+					if (rule.required) {
+						var field = instance.getField(fieldName);
 
-			if (bind) {
-				instance.eachRule(
-					function(rule, fieldName) {
-						var field = instance.getElementsByName(fieldName);
-
-						instance[handler].push(
-							field.on(evType, A.bind(fn, instance))
-						);
+						if (field && !field.attr(ARIA_REQUIRED)) {
+							field.attr(ARIA_REQUIRED, true);
+						}
 					}
-				);
-			}
+				}
+			);
 		},
 
 		_uiSetExtractRules: function(val) {
@@ -746,28 +785,39 @@ var FormValidator = A.Component.create({
 				var rules = instance.get(RULES);
 				var extractCssPrefix = instance.get(EXTRACT_CSS_PREFIX);
 
-				A.each(
-					YUI.AUI.defaults.FormValidator.RULES,
-					function(ruleValue, ruleName) {
-						var query = [DOT, extractCssPrefix, ruleName].join(EMPTY_STRING);
+				var defaultRules = YUI.AUI.defaults.FormValidator.RULES;
 
-						form.all(query).each(
-							function(node) {
-								if (node.get(TYPE)) {
-									var fieldName = node.get(NAME);
+				var defaultRulesKeys = AObject.keys(defaultRules);
 
-									if (!rules[fieldName]) {
-										rules[fieldName] = {};
-									}
+				var defaultRulesJoin = defaultRulesKeys.join('|');
 
-									if (!(ruleName in rules[fieldName])) {
-										rules[fieldName][ruleName] = true;
-									}
-								}
+				var regex = getRegExp('aui-field-' + defaultRulesJoin, 'g');
+
+				var formEl = form.getDOM();
+				var inputs = formEl.elements;
+
+				for (var i = 0, length = inputs.length; i < length; i++) {
+					var el = inputs[i];
+
+					var className = el.className;
+					var fieldName = el.name;
+
+					var ruleNameMatch = className.match(regex);
+
+					if (ruleNameMatch) {
+						if (!rules[fieldName]) {
+							rules[fieldName] = {};
+						}
+
+						for (var j = 0, ruleNameLength = ruleNameMatch.length; j < ruleNameLength; j ++) {
+							var rule = ruleNameMatch[j];
+
+							if (!(rules[fieldName][rule] in ruleNameMatch)) {
+								rules[fieldName][rule] = true;
 							}
-						);
+						}
 					}
-				);
+				}
 			}
 		},
 
