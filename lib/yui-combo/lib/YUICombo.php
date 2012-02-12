@@ -25,7 +25,7 @@ class YUICombo {
 
 	function fixPath($path) {
 		$path = ereg_replace("[/\]+", "/", $path);
-		return str_replace("_", ".", $path);
+		return str_replace(array('_', '##'), array('.', '_'), $path);
 	}
 
 	function getBasePath() {

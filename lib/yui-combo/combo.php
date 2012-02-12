@@ -13,7 +13,17 @@ $config = array(
 	// "gzip" => false
 );
 
-$combo = new YUICombo($_GET, $config);
+// PHP replaces dots in request params with underscores, but our conversion breaks
+// for files with underscores. For now, just converting underscores to ## and back to
+// underscore after.
+
+$paths = str_replace(array('_', '.'), array('##', '_'), $_SERVER['QUERY_STRING']);
+
+$modules = preg_split('/&/', $paths);
+
+$modules = !empty($modules) ? array_flip($modules) : $_GET;
+
+$combo = new YUICombo($modules, $config);
 
 $combo->loadModules();
 ?>
