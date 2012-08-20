@@ -551,7 +551,11 @@ A.mix(
 		removeItem: function(a, item) {
 			var index = arrayIndexOf(a, item);
 
-			return AArray.remove(a, index);
+			if (index > -1) {
+				return AArray.remove(a, index);
+			}
+
+			return a;
 		}
 	}
 );
@@ -622,6 +626,7 @@ var Lang = A.Lang,
 
 	DOC = A.config.doc,
 	INNER_HTML = 'innerHTML',
+	NORMALIZE = 'normalize',
 	REGEX_DASH = /-([a-z])/gi,
 	REGEX_ESCAPE_REGEX = /([.*+?^$(){}|[\]\/\\])/g,
 	REGEX_NL2BR = /\r?\n/g,
