@@ -120,7 +120,9 @@ YUI.AUI.defaults.FormValidator = {
 				// convert syntax (jpg, png) or (jpg png) to regex syntax (jpg|png)
 				var extensions = ruleValue.split(/,\s*|\b\s*/).join(PIPE);
 
-				regex = getRegExp('[.]' + extensions + '$', 'i');
+				extensions.replace('*', '.*');
+
+				regex = getRegExp('[.](' + extensions + ')$', 'i');
 			}
 
 			return regex && regex.test(val);
