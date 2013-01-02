@@ -4,125 +4,144 @@
 <head>
 	<script src="../../build/aui/aui.js" type="text/javascript"></script>
 
-	<link rel="stylesheet" href="../../build/aui-skin-classic/css/aui-skin-classic-all-min.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="../../build/alloy-twitter-bootstrap/bootstrap-2.2.2.min.css" type="text/css" media="screen" />
 
 	<style type="text/css" media="screen">
-		body {
-			font-size: 12px;
-		}
-
-		#wrapper {
-			padding: 10px;
-		}
-
-		#pb1 {
-			height: 25px;
-			width: 650px;
-		}
-
-		#pb2 {
-			height: 50px;
-			width: 200px;
-		}
-
-		#pb3 {
-			width: 400px;
-			position: relative;
-			text-align: center;
-		}
+		#wrapper { padding: 10px }
 	</style>
 </head>
 
 <body>
 
-<div id="wrapper">
-	<h1>Alloy - ProgressBar Demo</h1>
+	<div id="wrapper">
+		<h1>Alloy - ProgressBar Demo</h1>
 
-	<button id="pb1btn1">Set to 50%</button>
-	<button id="pb1btn2">Vertical orientation</button>
+		<h3>Basic</h3>
 
-	<div id="pb1"></div>
+		<button id="setValue">Set to 85%</button>
+		<button id="setOrientation">Vertical orientation</button>
 
-	<div id="pb2"></div>
+		<br /><br />
 
-	<div id="pb3">
-		<div class="aui-progress-bar-text">
-			From markup
-        </div>
+		<div id="basic" class="aui-progress"></div>
+
+		<h3>Striped</h3>
+
+		<div id="striped" class="aui-progress aui-progress-striped"></div>
+
+		<h3>Animated</h3>
+
+		<div id="animated" class="aui-progress aui-progress-striped aui-active"></div>
+
+		<h3>Stacked</h3>
+
+		<div id="stacked" class="aui-progress aui-progress-success"></div>
+
+		<h3>From Markup</h3>
+
+		<div id="markup" class="aui-progress aui-progress-warning">
+			<div class="aui-progress-text">
+				From markup
+	        </div>
+		</div>
+
+		<h3>Vertical</h3>
+		<div class="vertical aui-progress aui-vertical"></div>
 	</div>
-</div>
 
-<script type="text/javascript" charset="utf-8">
+	<script type="text/javascript" charset="utf-8">
+	AUI().use('aui-aria', 'aui-progressbar', function(A) {
+		/**
+		 * Basic
+		 */
+		var basic = new A.ProgressBar({
+			boundingBox: '#basic',
+			label: 'Progressbar at 40%',
+			max: 100,
+			min: 0,
+			on: {
+				complete: function(e) {
+					this.set('label', 'Complete!');
+				},
 
-AUI().ready('aui-aria', 'aui-progressbar', 'async-queue', 'anim', function(A) {
-
-	var pb1 = new A.ProgressBar({
-		boundingBox: '#pb1',
-		// width: 100,
-		// orientation: 'horizontal',
-		// min: 100,
-		// max: 200,
-		// max: 150,
-		// label: 'Progressbar!',
-		on: {
-			complete: function(e) {
-				this.set('label', 'complete!');
+				valueChange: function(e) {
+					this.set('label', 'Progressbar at ' + e.newVal + '%');
+				}
 			},
-			valueChange: function(e) {
-				// console.log('valueChange', e.newVal);
-				this.set('label', e.newVal + '%');
-			}
-		}
-		// value: 0,
-		// height: 25
-	})
-	.render();
+			value: 40,
+			width: 500
+		}).render();
 
-	// pb1.set('value', 100);
+		A.one('#setValue').on('click', function() {
+			basic.set('value', 85);
+		});
 
-	var pb2 = new A.ProgressBar({
-		boundingBox: '#pb2',
-		orientation: 'vertical',
-		height: 300
-	})
-	.render();
+		A.one('#setOrientation').on('click', function() {
+			basic.setAttrs({
+				height: 100,
+				orientation: 'vertical'
+			});
+		});
 
 
+		/**
+		 * Striped
+		 */
+		var striped = new A.ProgressBar({
+			boundingBox: '#striped',
+			cssClass: 'aui-progress-info',
+			height: 40,
+			label: '75%',
+			value: 75
+		})
+		.render();
 
-	var pb3 = new A.ProgressBar({
-		contentBox: '#pb3'
-	})
-	.render();
+
+		/**
+		 * Animated
+		 */
+		var animated = new A.ProgressBar({
+			boundingBox: '#animated',
+			value: 55
+		})
+		.render();
 
 
-	// extra
-	var step = 0;
-	var task1 = new A.AsyncQueue({
-		fn: function() {
-			++step;
+		/**
+		 * Stacked
+		 */
+		var stacked = new A.ProgressBar({
+			boundingBox: '#stacked',
+			label: '63%',
+			value: 63
+		})
+		.render();
 
-			pb1.set('value', step);
 
-			pb2.set('label', 'Loading... ' + step + '%');
-			pb2.set('value', step);
+		/**
+		 * From Markup
+		 */
+		var markup = new A.ProgressBar({
+			boundingBox: '#markup',
+			value: 58
+		})
+		.render();
 
-			pb3.set('value', step);
-		},
-		timeout: 1,
-		iterations: 100
+
+		/**
+		 * Basic Vertical Example
+		 */
+		var vertical = new A.ProgressBar({
+			boundingBox: '.vertical',
+			cssClass: 'aui-progress-danger',
+			height: 300,
+			label: '55%',
+			orientation: 'vertical',
+			value: 55,
+			width: 200
+		})
+		.render();
 	});
-	task1.run();
-
-	A.one('#pb1btn1').on('click', function() {
-		pb1.set('value', 50);
-	});
-
-	A.one('#pb1btn2').on('click', function() {
-		pb1.set('orientation', 'vertical');
-	});
-});
-
-</script>
-
+	</script>
 </body>
 </html>
