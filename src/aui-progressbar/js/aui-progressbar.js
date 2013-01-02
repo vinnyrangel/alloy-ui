@@ -16,6 +16,7 @@ var L = A.Lang,
 	SPACE = ' ',
 
 	AUTO = 'auto',
+	BAR = 'bar',
 	BOUNDING_BOX = 'boundingBox',
 	COMPLETE = 'complete',
 	CONTENT_BOX = 'contentBox',
@@ -27,11 +28,10 @@ var L = A.Lang,
 	MIN = 'min',
 	OFFSET_HEIGHT = 'offsetHeight',
 	ORIENTATION = 'orientation',
+	PROGRESS = 'progress',
 	PROGRESS_BAR = 'progress-bar',
 	PX = 'px',
 	RATIO = 'ratio',
-	STATUS = 'status',
-	STATUS_NODE = 'statusNode',
 	STEP = 'step',
 	TEXT = 'text',
 	TEXT_NODE = 'textNode',
@@ -46,12 +46,11 @@ var L = A.Lang,
 
 	getCN = A.getClassName,
 
-	CSS_HORIZONTAL = getCN(PROGRESS_BAR, HORIZONTAL),
-	CSS_STATUS = getCN(PROGRESS_BAR, STATUS),
-	CSS_TEXT = getCN(PROGRESS_BAR, TEXT),
-	CSS_VERTICAL = getCN(PROGRESS_BAR, VERTICAL),
+	CSS_BAR = getCN(BAR),
+	CSS_HORIZONTAL = getCN(PROGRESS, HORIZONTAL),
+	CSS_TEXT = getCN(PROGRESS, TEXT),
+	CSS_VERTICAL = getCN(VERTICAL),
 
-	TPL_STATUS = '<div class="'+CSS_STATUS+'"></div>',
 	TPL_TEXT = '<div class="'+CSS_TEXT+'"></div>';
 
 /**
@@ -124,7 +123,7 @@ var ProgressBar = A.Component.create(
 
 			/**
 			 * Display label of the progressbar. If not specified try to query
-             * using HTML_PARSER an element inside contentBox which matches
+             * using HTML_PARSER an element inside boundingBox which matches
              * <code>aui-progressbar-text</code> and get its innerHTML to be
              * used as label.
 			 *
@@ -206,21 +205,6 @@ var ProgressBar = A.Component.create(
 			},
 
 			/**
-			 * DOM Node to display the satus bar of the progressbar. If not
-             * specified try to query using HTML_PARSER an element inside
-             * contentBox which matches <code>aui-progressbar-status</code>.
-			 *
-			 * @attribute statusNode
-			 * @default Generated div element.
-			 * @type String
-			 */
-			statusNode: {
-				valueFn: function() {
-					return A.Node.create(TPL_STATUS);
-				}
-			},
-
-			/**
 			 * DOM Node to display the text of the progressbar. If not
              * specified try to query using HTML_PARSER an element inside
              * contentBox which matches <code>aui-progressbar-text</code>.
@@ -254,22 +238,20 @@ var ProgressBar = A.Component.create(
 
 		/**
 		 * Object hash, defining how attribute values are to be parsed from
-		 * markup contained in the widget's content box.
+		 * markup contained in the widget's bounding box.
 		 *
 		 * @property ProgressBar.HTML_PARSER
 		 * @type Object
 		 * @static
 		 */
 		HTML_PARSER: {
-			label: function(contentBox) {
-				var textNode = contentBox.one(DOT+CSS_TEXT);
+			label: function(boundingBox) {
+				var textNode = boundingBox.one(DOT+CSS_TEXT);
 
 				if (textNode) {
 					return textNode.html();
 				}
 			},
-
-			statusNode: DOT+CSS_STATUS,
 
 			textNode: DOT+CSS_TEXT
 		},
@@ -286,7 +268,8 @@ var ProgressBar = A.Component.create(
 			renderUI: function() {
 				var instance = this;
 
-				instance._renderStatusNode();
+				instance.get(CONTENT_BOX).addClass(CSS_BAR);
+
 				instance._renderTextNode();
 			},
 
@@ -307,28 +290,28 @@ var ProgressBar = A.Component.create(
 			},
 
 			/**
-			 * Calculate the contentBox size based on the
+			 * Calculate the boundingBox size based on the
              * <code>orientation</code> of the progressbar. If the orientation
              * is HORIZONTAL get the width, if the orientation is VERTICAL get
              * the height.
 			 *
-			 * @method _getContentBoxSize
+			 * @method _getBoundingBoxSize
 			 * @protected
 			 * @return {number}
 			 */
-			_getContentBoxSize: function() {
+			_getBoundingBoxSize: function() {
 				var instance = this;
-				var contentBox = instance.get(CONTENT_BOX);
+				var boundingBox = instance.get(BOUNDING_BOX);
 
 				return toNumber(
-					contentBox.getStyle(
+					boundingBox.getStyle(
 						this.get(ORIENTATION) === HORIZONTAL ? WIDTH : HEIGHT
 					)
 				);
 			},
 
 			/**
-			 * Calculate the number of pixels to set the <code>statusNode</code>.
+			 * Calculate the number of pixels to set the <code>contentBox</code> bar.
 			 *
 			 * @method _getPixelStep
 			 * @protected
@@ -337,7 +320,7 @@ var ProgressBar = A.Component.create(
 			_getPixelStep: function() {
 				var instance = this;
 
-				return instance._getContentBoxSize() * instance.get(RATIO);
+				return instance._getBoundingBoxSize() * instance.get(RATIO);
 			},
 
 			/**
@@ -369,20 +352,6 @@ var ProgressBar = A.Component.create(
 			},
 
 			/**
-			 * Render the <code>statusNode</code> of the progressbar.
-			 *
-			 * @method _renderStatusNode
-			 * @protected
-			 */
-			_renderStatusNode: function() {
-				var instance = this;
-
-				instance.get(CONTENT_BOX).append(
-					instance.get(STATUS_NODE)
-				);
-			},
-
-			/**
 			 * Render the <code>textNode</code> of the progressbar.
 			 *
 			 * @method _renderStatusNode
@@ -391,7 +360,7 @@ var ProgressBar = A.Component.create(
 			_renderTextNode: function() {
 				var instance = this;
 
-				instance.get(CONTENT_BOX).append(
+				instance.get(BOUNDING_BOX).append(
 					instance.get(TEXT_NODE)
 				);
 			},
@@ -424,6 +393,7 @@ var ProgressBar = A.Component.create(
 				boundingBox.toggleClass(CSS_HORIZONTAL, horizontal);
 				boundingBox.toggleClass(CSS_VERTICAL, !horizontal);
 
+				instance._uiSetValue(instance.get(VALUE));
 				instance._uiSizeTextNode();
 			},
 
@@ -437,7 +407,6 @@ var ProgressBar = A.Component.create(
 			 */
 			_uiSetValue: function(val) {
 				var instance = this;
-				var statusNode = instance.get(STATUS_NODE);
 				var pixelStep = instance._getPixelStep();
 
 				var styles = {};
@@ -452,7 +421,7 @@ var ProgressBar = A.Component.create(
 				else {
 					 styles = {
 						height: pixelStep+PX,
-						top: toNumber(instance._getContentBoxSize() - pixelStep)+PX,
+						top: toNumber(instance._getBoundingBoxSize() - pixelStep)+PX,
 						width: '100%'
 					};
 				}
@@ -461,7 +430,7 @@ var ProgressBar = A.Component.create(
 					instance.fire(COMPLETE);
 				}
 
-				statusNode.setStyles(styles);
+				instance.get(CONTENT_BOX).setStyles(styles);
 			},
 
 			/**
@@ -472,12 +441,12 @@ var ProgressBar = A.Component.create(
 			 */
 			_uiSizeTextNode: function() {
 				var instance = this;
-				var contentBox = instance.get(CONTENT_BOX);
+				var boundingBox = instance.get(BOUNDING_BOX);
 				var textNode = instance.get(TEXT_NODE);
 
 				textNode.setStyle(
 					LINE_HEIGHT,
-					contentBox.getStyle(HEIGHT)
+					boundingBox.getStyle(HEIGHT)
 				);
 			}
 		}
