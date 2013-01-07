@@ -26,9 +26,8 @@ var L = A.Lang,
 	HIDDEN = 'hidden',
 	INNER = 'inner',
 	OPACITY = 'opacity',
-	POINTER = 'pointer',
+	ARROW = 'arrow',
 	SHOW_ARROW = 'showArrow',
-	STATE = 'state',
 	STYLE = 'style',
 	VISIBLE = 'visible',
 
@@ -48,12 +47,11 @@ var L = A.Lang,
 	CSS_CONTEXTPANEL = getCN(CONTEXTPANEL),
 	CSS_CONTEXTPANEL_ARROW = getCN(CONTEXTPANEL, ARROW, BLANK),
 	CSS_CONTEXTPANEL_HIDDEN = getCN(CONTEXTPANEL, HIDDEN),
-	CSS_CONTEXTPANEL_POINTER = getCN(CONTEXTPANEL, POINTER),
-	CSS_CONTEXTPANEL_POINTER_INNER = getCN(CONTEXTPANEL, POINTER, INNER),
-	CSS_STATE_DEFAULT = getCN(STATE, DEFAULT),
+	CSS_CONTEXTPANEL_ARROW = getCN(CONTEXTPANEL, ARROW),
+	CSS_CONTEXTPANEL_ARROW_INNER = getCN(CONTEXTPANEL, ARROW, INNER),
 
-	TPL_POINTER = '<div class="' + [ CSS_STATE_DEFAULT, CSS_CONTEXTPANEL_POINTER ].join(' ') + '"></div>',
-	TPL_POINTER_INNER = '<div class="' + CSS_CONTEXTPANEL_POINTER_INNER + '"></div>';
+	TPL_ARROW = '<div class="' + [ CSS_CONTEXTPANEL_ARROW ].join(' ') + '"></div>',
+	TPL_ARROW_INNER = '<div class="' + CSS_CONTEXTPANEL_ARROW_INNER + '"></div>';
 
 /**
  * <p><img src="assets/images/aui-overlay-context-panel/main.png"/></p>
@@ -246,8 +244,6 @@ var OverlayContextPanel = A.Component.create(
 				var instance = this;
 
 				OverlayContextPanel.superclass.syncUI.apply(instance, arguments);
-
-				instance._syncElements();
 			},
 
 			/**
@@ -265,58 +261,6 @@ var OverlayContextPanel = A.Component.create(
 				var instance = this;
 
 				OverlayContextPanel.superclass.align.apply(this, arguments);
-
-				instance._syncElements();
-			},
-
-			/**
-			 * OverlayContextPanel uses a imageless arrow, which involves some CSS technics.
-			 * This method is meant to fix the color of the borders of the arrow.
-			 *
-			 * @method fixPointerColor
-			 */
-			fixPointerColor: function() {
-				var instance = this;
-				var contentBox = instance.get(CONTENT_BOX);
-				var pointer = contentBox.one(DOT+CSS_CONTEXTPANEL_POINTER_INNER);
-
-				pointer.removeAttribute(STYLE);
-
-				var bColor = contentBox.getStyle(BACKGROUND_COLOR);
-				var border = 'borderBottomColor';
-
-				var right = [
-					DOT+CSS_CONTEXTPANEL_ARROW+RB,
-						DOT+CSS_CONTEXTPANEL_ARROW+RC,
-							DOT+CSS_CONTEXTPANEL_ARROW+RL
-				]
-				.join(',');
-
-				var bottom = [
-					DOT+CSS_CONTEXTPANEL_ARROW+BR,
-						DOT+CSS_CONTEXTPANEL_ARROW+BC,
-							DOT+CSS_CONTEXTPANEL_ARROW+BL
-				]
-				.join(',');
-
-				var left = [
-					DOT+CSS_CONTEXTPANEL_ARROW+LB,
-						DOT+CSS_CONTEXTPANEL_ARROW+LC,
-							DOT+CSS_CONTEXTPANEL_ARROW+LT
-				]
-				.join(',');
-
-				if (contentBox.test(right)) {
-					border = 'borderLeftColor';
-				}
-				else if (contentBox.test(bottom)) {
-					border = 'borderTopColor';
-				}
-				else if (contentBox.test(left)) {
-					border = 'borderRightColor';
-				}
-
-				pointer.setStyle(border, bColor);
 			},
 
 			/**
@@ -371,43 +315,24 @@ var OverlayContextPanel = A.Component.create(
 			 */
 			_renderElements: function() {
 				var instance = this;
-				var contentBox = instance.get(CONTENT_BOX);
+				var boundingBox = instance.get(BOUNDING_BOX);
 				var align = instance.get(ALIGN);
 				var overlayPoint = align.points[0];
 
-				contentBox.addClass(CSS_STATE_DEFAULT);
-
-				instance._pointerNode = A.Node.create(TPL_POINTER).append(TPL_POINTER_INNER);
-
-				contentBox.append(
-					instance._pointerNode
-				);
+				if (instance.get(SHOW_ARROW)) {
+					instance._renderPointerNode();
+				}
 			},
 
-			/**
-			 * Sync the UI of the OverlayContextPanel elements.
-			 *
-			 * @method _syncElements
-			 * @protected
-			 */
-			_syncElements: function() {
+			_renderPointerNode: function () {
 				var instance = this;
-				var contentBox = instance.get(CONTENT_BOX);
-				var pointerNode = instance._pointerNode;
-				var overlayPoint = instance.getAlignPoint();
+				var boundingBox = instance.get(BOUNDING_BOX);
 
-				if (instance.get(SHOW_ARROW)) {
-					pointerNode.removeClass(CSS_CONTEXTPANEL_HIDDEN);
-					contentBox.removeClass(CSS_CONTEXTPANEL_ARROW + instance._lastOverlayPoint);
-					contentBox.addClass(CSS_CONTEXTPANEL_ARROW + overlayPoint);
+				instance._pointerNode = A.Node.create(TPL_ARROW).append(TPL_ARROW_INNER);
 
-					instance.fixPointerColor();
-				}
-				else {
-					pointerNode.addClass(CSS_CONTEXTPANEL_HIDDEN);
-				}
-
-				instance._lastOverlayPoint = overlayPoint;
+				boundingBox.append(
+					instance._pointerNode
+				);
 			},
 
 			/**
@@ -505,19 +430,6 @@ var OverlayContextPanel = A.Component.create(
 				else {
 					boundingBox.setStyle(OPACITY, 1);
 				}
-			},
-
-			/**
-			 * Fires after showArrow attribute changes.
-			 *
-			 * @method _afterShowArrowChange
-			 * @param {EventFacade} event
-			 * @protected
-			 */
-			_afterShowArrowChange: function() {
-				var instance = this;
-
-				instance._syncElements();
 			}
 		}
 	}
@@ -539,4 +451,4 @@ A.OverlayContextPanelManager = new A.OverlayManager({
 	zIndexBase: 1000
 });
 
-}, '@VERSION@' ,{skinnable:true, requires:['aui-overlay-context','anim']});
+}, '@VERSION@' ,{requires:['aui-overlay-context','anim'], skinnable:false});

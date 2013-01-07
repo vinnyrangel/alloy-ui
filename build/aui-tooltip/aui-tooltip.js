@@ -10,16 +10,30 @@ var L = A.Lang,
 	isUndefined = L.isUndefined,
 	isBoolean = L.isBoolean,
 
-	BL = 'bl',
-	TR = 'tr',
-	BLANK = '',
+	ALIGN = 'align',
+	ARROW = 'arrow',
 	ATTR = 'attr',
-	TITLE = 'title',
-	CURRENT_NODE = 'currentNode',
-	SECTION = 'section',
-	TRIGGER = 'trigger',
+	BL = 'bl',
+	BLANK = '',
 	BODY_CONTENT = 'bodyContent',
-	TOOLTIP = 'tooltip';
+	BOUDING_BOX = 'boundingBox',
+	CONTENT_BOX = 'contentBox',
+	CURRENT_NODE = 'currentNode',
+	INNER = 'inner',
+	SECTION = 'section',
+	SHOW_ARROW = 'showArrow',
+	TITLE = 'title',
+	TR = 'tr',
+	TOOLTIP = 'tooltip',
+	TRIGGER = 'trigger',
+
+	getCN = A.getClassName,
+
+	CSS_TOOLTIP = getCN(TOOLTIP),
+	CSS_TOOLTIP_ARROW = getCN(TOOLTIP, ARROW),
+	CSS_TOOLTIP_INNER = getCN(TOOLTIP, INNER),
+
+	TPL_TOOLTIP_ARROW = '<div class="' + CSS_TOOLTIP_ARROW + '"></div>';
 
 /**
  * <p><img src="assets/images/aui-tooltip/main.png"/></p>
@@ -163,6 +177,44 @@ var Tooltip = A.Component.create(
 				Tooltip.superclass.bindUI.apply(instance, arguments);
 			},
 
+			renderUI: function () {
+				var instance = this;
+				var boundingBox = instance.get(BOUDING_BOX);
+				var contentBox = instance.get(CONTENT_BOX);
+
+				boundingBox.addClass(CSS_TOOLTIP);
+				contentBox.addClass(CSS_TOOLTIP_INNER);
+
+				Tooltip.superclass.renderUI.apply(instance, arguments);
+
+				if (instance.get(SHOW_ARROW)) {
+					instance._pointerNode.addClass(CSS_TOOLTIP_ARROW);
+				}
+			},
+
+			/**
+			 * Align the arrow based on common classes of bootstrap
+			 * bottom, top, right, left
+			 *
+			 * @method alignArrow
+			 */
+			alignArrow: function () {
+				var instance = this;
+				var align = instance.get(ALIGN);
+				var alignMap = {
+					b: 'bottom',
+					c: 'top',
+					l: 'left',
+					r: 'right',
+					t: 'top'
+				}
+
+				var firstLetter = align.points[1].substring(0,1);
+				var arrowClass = getCN(alignMap[firstLetter]);
+
+				instance.get(BOUDING_BOX).addClass(arrowClass);
+			},
+
 			/**
 			 * Over-ride the <code>show</code> to invoke the
 		     * <a href="Tooltip.html#method__loadBodyContentFromTitle">_loadBodyContentFromTitle</a>.
@@ -179,6 +231,8 @@ var Tooltip = A.Component.create(
 				if (instance.get(TITLE)) {
 					instance._loadBodyContentFromTitle( instance.get(CURRENT_NODE) );
 				}
+
+				instance.alignArrow();
 			},
 
 			/**
@@ -229,4 +283,4 @@ var Tooltip = A.Component.create(
 
 A.Tooltip = Tooltip;
 
-}, '@VERSION@' ,{requires:['aui-overlay-context-panel'], skinnable:true});
+}, '@VERSION@' ,{skinnable:false, requires:['aui-overlay-context-panel']});
